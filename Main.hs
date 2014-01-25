@@ -1,9 +1,9 @@
-
 import Control.Monad (void)
+import Control.Arrow ((&&&))
 import Data.IORef ( newIORef
                   , readIORef
                   , writeIORef)
-import Data.List
+import Data.List (groupBy, sort, isInfixOf)
 import Data.Char (toLower)
 import System.Directory
 import System.Environment (getArgs)
@@ -11,19 +11,28 @@ import System.Environment (getArgs)
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core
 
+import Text.Parsec (ParseError)
+import HTML
+import Parser
+import Data
 
-main :: IO ()
-main = startGUI defaultConfig { tpPort = 10000 } setup
+
+main :: IO () --  startGUI defaultConfig { tpPort = 10000 } setup
+main = do startGUI defaultConfig
+              { tpPort       = 10000
+              , tpStatic     = Just "./wwwroot"
+              } $ setup
 
 setup :: Window -> UI ()
 setup w = do
     return w # set title "<=Skriptenliste="
+    UI.addStyleSheet w "stylesheet.css"
     home <- liftIO getHomeDirectory
     target <- liftIO getArgs
-    let folder = home ++ "/" ++ if null target then "Downloads"
+    let folder = home ++ "/" ++ if null target then "Skriptensammlung"
                                                else head target
-    (btnRescanFolder, viewRescanFolder) <- mkButton "Scan Folder"
-    elInput <- UI.input # set text ""
+    btnRescanFolder <- UI.button #. "button" #+ [string "Scan Folder"]
+    elInput <- UI.input # set style [("width","300")] # set (attr "type") "text"
     inputs <- liftIO $ newIORef []
 
     let drawLayout :: UI ()
@@ -34,21 +43,23 @@ setup w = do
 
         mkLayout :: [String] -> UI Element
         mkLayout xs = column [UI.h1 # set text "Skriptenliste", UI.hr
-                             ,row [UI.span # set text "Search: " ,element elInput]
-                             ,return viewRescanFolder
+                             ,UI.p #+[ UI.span # set text "Search: "
+                                  , element elInput
+                                  , element btnRescanFolder]
                              ,UI.ul #+ makeList xs
                              ,UI.hr
                              ,UI.span # set text "Copyright 2014 by Martin Heuschober"]
 
         rescanFolder :: UI ()
         rescanFolder = liftIO $ do fs <- sFilter ".pdf" `fmap` getDirectoryContents folder
-                                   mapM_ putStrLn fs
                                    writeIORef inputs fs
 
         makeList :: [String] -> [UI Element]
-        makeList = map (\fname -> UI.li #+ [UI.a # set UI.href ("file://"++folder++"/"++fname)
-                                                 #+ [string {- .renderHTML -} fname]])
-
+        makeList ss = let groupedList = map leftOrAutor $ groupByFst leftRightAutor $ sort $ map (skriptum &&& id) ss
+                      in  map (\(hl,lst) -> UI.li #+ [UI.h2 # set html hl, UI.ul #+ map items lst]) groupedList
+                    where url file ="file://"++folder++"/"++file
+                          items (skrpt, fname) = UI.li #+ [UI.a # set UI.href (url fname)
+                                                                #+ [UI.span # set html (renderHTML $ skrpt)]]
     on (domEvent "livechange") elInput $ return drawLayout
     on UI.click btnRescanFolder $ \_ -> rescanFolder >> drawLayout
     rescanFolder
@@ -61,10 +72,26 @@ sFilter search = filter (isInfixOf (tidyUp search) . tidyUp)
                      ignoreCase = map toLower
                      ignoreWhitespace = filter (`notElem` " _\r\n\t")
 
-mkButton :: String -> UI (Element, Element)
-mkButton t = do
-    button <- UI.button #. "button" #+ [string t]
-    view   <- UI.p #+ [element button]
-    return (button, view)
+groupByFst :: (a -> a -> Bool) -> [(a,b)] -> [[(a,b)]]
+groupByFst f = groupBy (\x y -> f (fst x) (fst y))
 
+leftRightAutor :: Either ParseError Skriptum -> Either ParseError Skriptum -> Bool
+leftRightAutor (Left _) (Left _) = True
+leftRightAutor (Right s1) (Right s2) = autor s1 == autor s2
+leftRightAutor _ _ = False
+
+
+leftOrAutor :: [(Either ParseError Skriptum,String)] -> (String, [(Either ParseError Skriptum,String)])
+leftOrAutor [] = error "leftOrAutor: error empty list"
+leftOrAutor x  = case fst $ head x of Left _  -> (warning, x)
+                                      Right y -> (autor y, x)
+
+warning :: String
+warning = "Files not of the form: Autor_Titel_Typ_Semester_Jahr.pdf"
+
+instance Eq ParseError
+  where _ == _ = True
+
+instance Ord ParseError where
+  compare _ _ = EQ
 

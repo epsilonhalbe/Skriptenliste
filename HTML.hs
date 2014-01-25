@@ -1,9 +1,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 
-module Skriptenliste.HTML where
+module HTML where
 
 import Text.Parsec
-import Skriptenliste.Data
+import Data
 
 
 class HTML a where
@@ -11,18 +11,19 @@ class HTML a where
 
 instance HTML (Either ParseError Skriptum)
   where renderHTML (Left msg) = "<p style=\"color:red\">"++
-                                    renderHTML (show msg)++
+                                    renderHTML (take 80 (show msg) ++ "...")++
                                 "</p>"
+        renderHTML (Right skrpt) = renderHTML skrpt
 
 instance HTML Skriptum
-  where renderHTML (Skriptum t a s j p typ) = bold   (renderHTML a)++", "++
-                                              italic (renderHTML t)++
-                                                      renderHTML s ++
-                                                      renderHTML j ++
-                                                      renderHTML p ++
-                                                      renderHTML typ
-                                            where bold   text = "<b>"++text++"</b>"
-                                                  italic text = "<i>"++text++"</i>"
+  where renderHTML (Skriptum a t s j p ty) = italic (renderHTML a)++", "++
+                                             bold   (renderHTML t)++
+                                                     renderHTML s ++
+                                                     renderHTML j ++
+                                                     renderHTML p ++
+                                                     renderHTML ty
+                                           where bold   text = "<b>"++text++"</b>"
+                                                 italic text = "<i>"++text++"</i>"
 
 instance (HTML a) => HTML (Maybe a)
   where renderHTML Nothing = ""

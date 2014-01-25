@@ -1,14 +1,15 @@
-module Skriptenliste.Data where
+module Data where
 
-data Skriptum = Skriptum { _titel    :: String
-                         , _autor    :: String
-                         , _semester :: Maybe Semester
-                         , _jahr     :: Maybe Jahr
-                         , _pages    :: Maybe Page
-                         , _typ      :: Maybe Typ} deriving (Show, Eq)
 
-data Semester = WS | SS deriving (Show,Eq)
-data Typ = LaTeX | Mitschrift deriving (Show, Eq)
-newtype Jahr = J Int deriving (Show,Eq)
-newtype Page = P Int deriving (Show,Eq)
+data Skriptum = Skriptum { autor    :: String
+                         , titel    :: String
+                         , semester :: Maybe Semester
+                         , jahr     :: Maybe Jahr
+                         , pages    :: Maybe Page
+                         , typ      :: Maybe Typ} deriving (Show, Eq, Ord)
+
+data Semester = WS | SS deriving (Show,Eq,Ord)
+data Typ = LaTeX | Mitschrift deriving (Show, Eq,Ord)
+newtype Jahr = J Int deriving (Show,Eq,Ord)
+newtype Page = P Int deriving (Show,Eq,Ord)
 

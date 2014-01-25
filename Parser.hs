@@ -1,9 +1,9 @@
-module Skriptenliste.Parse where
+module Parser where
 
 import Text.Parsec
 import Text.ParserCombinators.Parsec hiding (try)
 
-import Skriptenliste.Data
+import Data
 
 skriptum :: String -> Either ParseError Skriptum
 skriptum s = parse parseSkriptum s s
@@ -18,7 +18,7 @@ parseSkriptum = do a <- parseAutor
                    tm <- parseMSemester
                    char '_'
                    y <- parseMJahr
-                   return $ Skriptum ti a tm y Nothing ty
+                   return $ Skriptum a ti tm y Nothing ty
 
 parseTitel :: Parser String
 parseTitel = many1 (noneOf "_")
@@ -39,8 +39,6 @@ parseMTyp =  (do choice [string "Latex", string "LaTeX", string "latex"]
              (do choice [string "Mitschrift", string "mitschrift"]
                  return $ Just Mitschrift) <|>
                  return Nothing
-
-
 
 parseMJahr :: Parser (Maybe Jahr)
 parseMJahr =  (do n <- many1 digit
