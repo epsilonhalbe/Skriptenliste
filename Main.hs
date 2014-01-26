@@ -5,8 +5,7 @@ import Data.IORef ( newIORef
                   , writeIORef)
 import Data.List (groupBy, sort, isInfixOf)
 import Data.Char (toLower)
-import System.Directory (getCurrentDirectory
-                        ,getDirectoryContents)
+import System.Directory
 
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core
@@ -20,15 +19,15 @@ import Data
 main :: IO () --  startGUI defaultConfig { tpPort = 10000 } setup
 main = do startGUI defaultConfig
               { tpPort       = 10000
-              , tpStatic     = Just "./.wwwroot"
+              , tpStatic     = Just "static"
               } $ setup
 
 setup :: Window -> UI ()
 setup w = do
-    return w # set title "<=Skriptenliste="
+    return w # set title "<= Skriptenliste ="
     UI.addStyleSheet w "stylesheet.css"
-    folder <- liftIO getCurrentDirectory
-    btnRescanFolder <- UI.button #. "button" #+ [string "Scan Folder"]
+    let folder = "static/Skriptensammlung"
+    btnRescanFolder <- UI.button #. "button" #+ [string "Ordner neu laden"]
     elInput <- UI.input # set style [("width","300")] # set (attr "type") "text"
     inputs <- liftIO $ newIORef []
 
@@ -40,7 +39,7 @@ setup w = do
 
         mkLayout :: [String] -> UI Element
         mkLayout xs = column [UI.h1 # set text "Skriptenliste", UI.hr
-                             ,UI.p #+[ UI.span # set text "Search: "
+                             ,UI.p #+[ UI.span # set text "Suche: "
                                   , element elInput
                                   , element btnRescanFolder]
                              ,UI.ul #+ makeList xs
@@ -54,7 +53,7 @@ setup w = do
         makeList :: [String] -> [UI Element]
         makeList ss = let groupedList = map leftOrAutor $ groupByFst leftRightAutor $ sort $ map (skriptum &&& id) ss
                       in  map (\(hl,lst) -> UI.li #+ [UI.h2 # set html (renderHTML hl), UI.ul #+ map items lst]) groupedList
-                    where url file ="./"++(urlEscape file)
+                    where url file =folder++"/"++urlEscape file
                           items (skrpt, fname) = UI.li #+ [UI.anchor # set UI.href (url fname)
                                                                      #+ [UI.span # set html (renderHTML $ skrpt)]]
     on (domEvent "livechange") elInput $ return drawLayout
@@ -84,7 +83,7 @@ leftOrAutor x  = case fst $ head x of Left _  -> (warning, x)
                                       Right y -> (autor y, x)
 
 warning :: String
-warning = "Files not of the form: Autor_Titel_Typ_Semester_Jahr.pdf"
+warning = "Dateien nicht in der Form: Autor_Titel_Typ_Semester_Jahr.pdf"
 
 instance Eq ParseError
   where _ == _ = True
