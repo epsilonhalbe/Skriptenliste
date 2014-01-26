@@ -5,8 +5,8 @@ import Data.IORef ( newIORef
                   , writeIORef)
 import Data.List (groupBy, sort, isInfixOf)
 import Data.Char (toLower)
-import System.Directory
-import System.Environment (getArgs)
+import System.Directory (getCurrentDirectory
+                        ,getDirectoryContents)
 
 import qualified Graphics.UI.Threepenny as UI
 import Graphics.UI.Threepenny.Core
@@ -20,17 +20,14 @@ import Data
 main :: IO () --  startGUI defaultConfig { tpPort = 10000 } setup
 main = do startGUI defaultConfig
               { tpPort       = 10000
-              , tpStatic     = Just "./wwwroot"
+              , tpStatic     = Just "./.wwwroot"
               } $ setup
 
 setup :: Window -> UI ()
 setup w = do
     return w # set title "<=Skriptenliste="
     UI.addStyleSheet w "stylesheet.css"
-    home <- liftIO getHomeDirectory
-    target <- liftIO getArgs
-    let folder = home ++ "/" ++ if null target then "Skriptensammlung"
-                                               else head target
+    folder <- liftIO getCurrentDirectory
     btnRescanFolder <- UI.button #. "button" #+ [string "Scan Folder"]
     elInput <- UI.input # set style [("width","300")] # set (attr "type") "text"
     inputs <- liftIO $ newIORef []
@@ -56,10 +53,10 @@ setup w = do
 
         makeList :: [String] -> [UI Element]
         makeList ss = let groupedList = map leftOrAutor $ groupByFst leftRightAutor $ sort $ map (skriptum &&& id) ss
-                      in  map (\(hl,lst) -> UI.li #+ [UI.h2 # set html hl, UI.ul #+ map items lst]) groupedList
-                    where url file ="file://"++folder++"/"++file
-                          items (skrpt, fname) = UI.li #+ [UI.a # set UI.href (url fname)
-                                                                #+ [UI.span # set html (renderHTML $ skrpt)]]
+                      in  map (\(hl,lst) -> UI.li #+ [UI.h2 # set html (renderHTML hl), UI.ul #+ map items lst]) groupedList
+                    where url file ="./"++(urlEscape file)
+                          items (skrpt, fname) = UI.li #+ [UI.anchor # set UI.href (url fname)
+                                                                     #+ [UI.span # set html (renderHTML $ skrpt)]]
     on (domEvent "livechange") elInput $ return drawLayout
     on UI.click btnRescanFolder $ \_ -> rescanFolder >> drawLayout
     rescanFolder

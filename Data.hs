@@ -9,7 +9,7 @@ data Skriptum = Skriptum { autor    :: String
                          , typ      :: Maybe Typ} deriving (Show, Eq, Ord)
 
 data Semester = WS | SS deriving (Show,Eq,Ord)
-data Typ = LaTeX | Mitschrift deriving (Show, Eq,Ord)
+data Typ = LaTeX | Manuskript | Mitschrift | VU | Prüfung | Übung deriving (Show, Eq,Ord)
 newtype Jahr = J Int deriving (Show,Eq,Ord)
 newtype Page = P Int deriving (Show,Eq,Ord)
 
